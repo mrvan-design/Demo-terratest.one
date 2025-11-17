@@ -1,3 +1,6 @@
+# =====================
+# VPC
+# =====================
 resource "aws_vpc" "demo_vpc" {
   cidr_block = "10.0.0.0/16"
 
@@ -6,6 +9,9 @@ resource "aws_vpc" "demo_vpc" {
   }
 }
 
+# =====================
+# Subnet
+# =====================
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.demo_vpc.id
   cidr_block              = "10.0.1.0/24"
@@ -16,6 +22,9 @@ resource "aws_subnet" "public" {
   }
 }
 
+# =====================
+# Security Group
+# =====================
 resource "aws_security_group" "demo_sg" {
   name        = "demo-sg"
   description = "Allow all inbound for LocalStack testing"
@@ -36,6 +45,9 @@ resource "aws_security_group" "demo_sg" {
   }
 }
 
+# =====================
+# EC2 instance
+# =====================
 resource "aws_instance" "demo_ec2" {
   ami           = "ami-12345678"  # LocalStack fake AMI
   instance_type = "t2.micro"
@@ -45,10 +57,5 @@ resource "aws_instance" "demo_ec2" {
 
   tags = {
     Name = "demo-ec2"
-  }
-}
-resource "null_resource" "wait_for_localstack" {
-  provisioner "local-exec" {
-    command = "until curl -s http://localhost:4566; do sleep 2; done"
   }
 }
