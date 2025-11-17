@@ -11,22 +11,21 @@ permissions:
 jobs:
   terraform:
     runs-on: ubuntu-latest
-    environment: production
 
     services:
       localstack:
-        image: localstack/localstack:latest
+        image: localstack/localstack:0.14.1
         ports:
           - 4566:4566
         options: >-
-          --health-cmd "curl -s http://localhost:4566/_localstack/health | grep '\"ec2\":\"running\"'"
-          --health-interval 5s
-          --health-timeout 2s
-          --health-retries 20
-
-    defaults:
-      run:
-        shell: bash
+          --health-cmd "curl -s http://localhost:4566/_localstack/health | grep 'running'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 30
+        env:
+          SERVICES: ec2,iam,s3,sts,vpc
+          DEBUG: 1
+          AWS_DEFAULT_REGION: us-east-1
 
     steps:
       # 1. Checkout code
@@ -39,19 +38,33 @@ jobs:
         with:
           terraform_version: latest
 
-      # 3. Terraform fmt
+      # 3. Wait for LocalStack
+      - name: Wait for LocalStack
+        run: |
+          echo "Waiting for LocalStack to be ready..."
+          for i in {1..30}; do
+            HEALTH=$(curl -s http://localhost:4566/_localstack/health | jq -r '.services | to_entries | map(select(.value=="running")) | length')
+            if [[ "$HEALTH" -gt 0 ]]; then
+              echo "LocalStack services are running!"
+              break
+            fi
+            echo "LocalStack not ready yet... sleeping 10s"
+            sleep 10
+          done
+
+      # 4. Terraform format
       - name: Terraform Format
         run: terraform -chdir=terraform fmt -recursive
 
-      # 4. Terraform init
+      # 5. Terraform init
       - name: Terraform Init
         run: terraform -chdir=terraform init
 
-      # 5. Terraform plan
+      # 6. Terraform plan
       - name: Terraform Plan
         run: terraform -chdir=terraform plan -input=false
 
-      # 6. Terraform apply (chỉ trên push main)
+      # 7. Terraform apply (only on main push)
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform -chdir=terraform apply -auto-approve -input=false
