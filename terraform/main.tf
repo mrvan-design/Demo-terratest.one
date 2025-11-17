@@ -1,61 +1,26 @@
-# =====================
-# VPC
-# =====================
-resource "aws_vpc" "demo_vpc" {
-  cidr_block = "10.0.0.0/16"
+provider "aws" {
+  region                      = "us-east-1"
+  access_key                  = "test"
+  secret_key                  = "test"
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
+  skip_requesting_account_id  = true
 
-  tags = {
-    Name = "demo-vpc"
+  endpoints {
+    ec2 = "http://host.docker.internal:4566"
+    iam = "http://host.docker.internal:4566"
+    sts = "http://host.docker.internal:4566"
+    s3  = "http://host.docker.internal:4566"
   }
 }
 
-# =====================
-# Subnet
-# =====================
-resource "aws_subnet" "public" {
-  vpc_id                  = aws_vpc.demo_vpc.id
-  cidr_block              = "10.0.1.0/24"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "demo-subnet"
-  }
-}
-
-# =====================
-# Security Group
-# =====================
-resource "aws_security_group" "demo_sg" {
-  name        = "demo-sg"
-  description = "Allow all inbound for LocalStack testing"
-  vpc_id      = aws_vpc.demo_vpc.id
-
-  ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# =====================
-# EC2 instance
-# =====================
-resource "aws_instance" "demo_ec2" {
-  ami           = "ami-12345678"  # LocalStack fake AMI
-  instance_type = "t2.micro"
-  subnet_id     = aws_subnet.public.id
-
-  vpc_security_group_ids = [aws_security_group.demo_sg.id]
-
-  tags = {
-    Name = "demo-ec2"
+resource "null_resource" "wait_for_localstack" {
+  provisioner "local-exec" {
+    command = <<EOT
+      until curl -s http://host.docker.internal:4566/_localstack/health | grep '"ec2": "running"'; do
+        echo "Waiting for LocalStack EC2..."
+        sleep 2
+      done
+    EOT
   }
 }
