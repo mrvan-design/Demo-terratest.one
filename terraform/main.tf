@@ -1,48 +1,22 @@
-# =====================
-# Wait for LocalStack EC2 ready
-# =====================
-resource "null_resource" "wait_for_localstack" {
-  provisioner "local-exec" {
-    command = <<EOT
-echo "Waiting for LocalStack EC2..."
-until curl -s http://localhost:4566/_localstack/health | grep -q '\"ec2\":\"running\"'; do
-  sleep 2
-done
-echo "LocalStack EC2 is ready!"
-EOT
-  }
-}
-
-# =====================
 # VPC
-# =====================
 resource "aws_vpc" "demo_vpc" {
   cidr_block = "10.0.0.0/16"
-
   tags = { Name = "demo-vpc" }
-
-  depends_on = [null_resource.wait_for_localstack]
 }
 
-# =====================
-# Public Subnet
-# =====================
+# Subnet
 resource "aws_subnet" "public" {
-  vpc_id                   = aws_vpc.demo_vpc.id
-  cidr_block               = "10.0.1.0/24"
-  map_public_ip_on_launch  = true
+  vpc_id                  = aws_vpc.demo_vpc.id
+  cidr_block              = "10.0.1.0/24"
+  map_public_ip_on_launch = true
 
   tags = { Name = "demo-subnet" }
-
-  depends_on = [aws_vpc.demo_vpc]
 }
 
-# =====================
 # Security Group
-# =====================
 resource "aws_security_group" "demo_sg" {
   name        = "demo-sg"
-  description = "Allow all inbound for LocalStack testing"
+  description = "Allow all inbound"
   vpc_id      = aws_vpc.demo_vpc.id
 
   ingress {
@@ -58,23 +32,14 @@ resource "aws_security_group" "demo_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  depends_on = [aws_vpc.demo_vpc]
 }
 
-# =====================
-# EC2 Instance
-# =====================
+# EC2
 resource "aws_instance" "demo_ec2" {
-  ami                    = "ami-12345678" # placeholder cho LocalStack
-  instance_type           = "t2.micro"
-  subnet_id               = aws_subnet.public.id
-  vpc_security_group_ids  = [aws_security_group.demo_sg.id]
+  ami                    = "ami-12345678"
+  instance_type          = "t2.micro"
+  subnet_id              = aws_subnet.public.id
+  vpc_security_group_ids = [aws_security_group.demo_sg.id]
 
   tags = { Name = "demo-ec2" }
-
-  depends_on = [
-    aws_subnet.public,
-    aws_security_group.demo_sg
-  ]
 }
