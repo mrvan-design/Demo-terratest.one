@@ -47,3 +47,8 @@ resource "aws_instance" "demo_ec2" {
     Name = "demo-ec2"
   }
 }
+resource "null_resource" "wait_for_localstack" {
+  provisioner "local-exec" {
+    command = "until curl -s http://localhost:4566; do sleep 2; done"
+  }
+}
