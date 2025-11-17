@@ -1,14 +1,3 @@
-provider "aws" {
-  region                      = "us-east-1"
-  access_key                  = "test"
-  secret_key                  = "test"
-  skip_credentials_validation = true
-  skip_metadata_api_check     = true
-  s3_force_path_style         = true
-  endpoints {
-    ec2 = "http://host.docker.internal:4566"
-  }
-}
 
 # =====================
 # VPC
@@ -75,23 +64,4 @@ resource "aws_instance" "demo_ec2" {
     aws_security_group.demo_sg,
     aws_subnet.public
   ]
-}
-
-# =====================
-# Outputs
-# =====================
-output "vpc_id" {
-  value = aws_vpc.demo_vpc.id
-}
-
-output "subnet_id" {
-  value = aws_subnet.public.id
-}
-
-output "sg_id" {
-  value = aws_security_group.demo_sg.id
-}
-
-output "instance_id" {
-  value = aws_instance.demo_ec2.id
 }
