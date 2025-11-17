@@ -11,60 +11,60 @@ permissions:
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    environment: production
+
+    defaults:
+      run:
+        shell: bash
 
     services:
       localstack:
-        image: localstack/localstack:0.14.1
+        image: localstack/localstack:0.14.1  # stable lightweight version
         ports:
           - 4566:4566
-        options: >-
-          --health-cmd "curl -s http://localhost:4566/_localstack/health | grep 'running'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 30
         env:
-          SERVICES: ec2,iam,s3,sts,vpc
+          SERVICES: ec2,iam,vpc  # chỉ bật những service cần
           DEBUG: 1
           AWS_DEFAULT_REGION: us-east-1
 
     steps:
-      # 1. Checkout code
-      - name: Checkout
-        uses: actions/checkout@v4
+    # 1. Checkout code
+    - name: Checkout
+      uses: actions/checkout@v4
 
-      # 2. Setup Terraform
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: latest
+    # 2. Install Terraform CLI
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: latest
 
-      # 3. Wait for LocalStack
-      - name: Wait for LocalStack
-        run: |
-          echo "Waiting for LocalStack to be ready..."
-          for i in {1..30}; do
-            HEALTH=$(curl -s http://localhost:4566/_localstack/health | jq -r '.services | to_entries | map(select(.value=="running")) | length')
-            if [[ "$HEALTH" -gt 0 ]]; then
-              echo "LocalStack services are running!"
-              break
-            fi
-            echo "LocalStack not ready yet... sleeping 10s"
-            sleep 10
-          done
+    # 3. Wait for LocalStack to be ready
+    - name: Wait for LocalStack
+      run: |
+        echo "Waiting for LocalStack EC2..."
+        for i in {1..30}; do
+          HEALTH=$(curl -s http://localhost:4566/_localstack/health | jq -r '.services.ec2')
+          if [[ "$HEALTH" == "running" ]]; then
+            echo "LocalStack EC2 is ready!"
+            break
+          fi
+          echo "LocalStack not ready yet... sleeping 10s"
+          sleep 10
+        done
 
-      # 4. Terraform format
-      - name: Terraform Format
-        run: terraform -chdir=terraform fmt -recursive
+    # 4. Terraform fmt (format all files)
+    - name: Terraform Format
+      run: terraform -chdir=terraform fmt -recursive
 
-      # 5. Terraform init
-      - name: Terraform Init
-        run: terraform -chdir=terraform init
+    # 5. Terraform init
+    - name: Terraform Init
+      run: terraform -chdir=terraform init
 
-      # 6. Terraform plan
-      - name: Terraform Plan
-        run: terraform -chdir=terraform plan -input=false
+    # 6. Terraform plan
+    - name: Terraform Plan
+      run: terraform -chdir=terraform plan -input=false
 
-      # 7. Terraform apply (only on main push)
-      - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform -chdir=terraform apply -auto-approve -input=false
+    # 7. Terraform apply on push to main
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: terraform -chdir=terraform apply -auto-approve -input=false
