@@ -1,19 +1,30 @@
+# ----------------------
 # VPC
+# ----------------------
 resource "aws_vpc" "demo_vpc" {
   cidr_block = "10.0.0.0/16"
-  tags = { Name = "demo-vpc" }
+
+  tags = {
+    Name = "demo-vpc"
+  }
 }
 
+# ----------------------
 # Subnet
+# ----------------------
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.demo_vpc.id
   cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true
 
-  tags = { Name = "demo-subnet" }
+  tags = {
+    Name = "demo-subnet"
+  }
 }
 
+# ----------------------
 # Security Group
+# ----------------------
 resource "aws_security_group" "demo_sg" {
   name        = "demo-sg"
   description = "Allow all inbound"
@@ -34,12 +45,19 @@ resource "aws_security_group" "demo_sg" {
   }
 }
 
-# EC2
+# ----------------------
+# EC2 instance (LocalStack compatible)
+# ----------------------
 resource "aws_instance" "demo_ec2" {
-  ami                    = "ami-12345678"
+  ami                    = "ami-00000000"  # LocalStack fake AMI
   instance_type          = "t2.micro"
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.demo_sg.id]
 
-  tags = { Name = "demo-ec2" }
+  tags = {
+    Name = "demo-ec2"
+  }
+
+  # Important for LocalStack
+  associate_public_ip_address = true
 }
