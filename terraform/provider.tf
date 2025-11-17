@@ -7,8 +7,9 @@ provider "aws" {
   skip_requesting_account_id  = true
 
   endpoints {
-    ec2 = "http://host.docker.internal:4566"
-    vpc = "http://host.docker.internal:4566"
-    s3  = "http://host.docker.internal:4566"
+    ec2  = "http://host.docker.internal:4566"
+    s3   = "http://host.docker.internal:4566"
+    iam  = "http://host.docker.internal:4566"
+    cloudformation = "http://host.docker.internal:4566"
   }
 }
